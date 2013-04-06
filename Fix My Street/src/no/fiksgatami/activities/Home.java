@@ -44,6 +44,8 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
+import org.osmdroid.views.MapView;
 
 public class Home extends Base {
     // ****************************************************
@@ -54,6 +56,7 @@ public class Home extends Base {
     private Button btnReport;
     private Button btnDetails;
     private Button btnPicture;
+    private Button btnPosition;
     // Info that's been passed from other activities
     private Boolean haveDetails = false;
     private Boolean havePicture = false;
@@ -108,6 +111,7 @@ public class Home extends Base {
 
         btnDetails = (Button) findViewById(R.id.details_button);
         btnPicture = (Button) findViewById(R.id.camera_button);
+        btnPosition = (Button) findViewById(R.id.position_button);
         btnReport = (Button) findViewById(R.id.report_button);
         btnReport.setVisibility(View.GONE);
         textProgress = (TextView) findViewById(R.id.progress_text);
@@ -152,7 +156,7 @@ public class Home extends Base {
         TelephonyManager mTelephonyMgr = (TelephonyManager) this
         .getSystemService(TELEPHONY_SERVICE);
         String country = mTelephonyMgr.getNetworkCountryIso();
-        //Log.d(LOG_TAG, "country = " + country);
+        Log.d(LOG_TAG, "country = " + country);
         if (!(country.matches("no"))) {
             showDialog(COUNTRY_ERROR);
         }
@@ -264,6 +268,13 @@ public class Home extends Base {
                 imageCaptureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri
                         .fromFile(photo));
                 startActivityForResult(imageCaptureIntent, REQUEST_UPLOAD_PICTURE);
+            }
+        });
+        btnPosition.setOnClickListener(new OnClickListener() {
+            public void onClick(final View view) {
+                Intent i = new Intent(Home.this, Position.class);
+                i.putExtra("fra", Home.class.getSimpleName());
+                startActivity(i);
             }
         });
         btnReport.setOnClickListener(new OnClickListener() {

@@ -91,5 +91,13 @@
     <string name="activity_success">FiksGataMi - Suksess</string>
     <string name="activity_about">FiksGataMi - Om</string>
     <string name="activity_help">FiksGataMi - Hjelp</string>
+	<string name="activity_position">FiksGataMi - finn posisjon</string>
+
+	<string name="awaiting_gps">Venter på GPS... Pass på at du kan se himmelen.</string>
+	<string name="add_details">Legg til detaljer</string>
+	<string name="take_photo">Ta bilde</string>
+	<string name="report">Rapporter til FiksGataMi</string>
+	<string name="background_image_description">Bakgrunnsbilde</string>
+	<string name="find_position">Velg posisjon</string>
 
 </resources>
