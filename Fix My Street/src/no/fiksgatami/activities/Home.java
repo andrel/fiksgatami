@@ -3,21 +3,6 @@
 // **************************************************************************
 package no.fiksgatami.activities;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-
-import android.os.AsyncTask;
-import no.fiksgatami.FiksGataMi;
-import no.fiksgatami.R;
-import no.fiksgatami.utils.CommonUtil;
-import no.fiksgatami.utils.HttpUtil;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.util.EntityUtils;
-
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -27,10 +12,12 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -44,8 +31,20 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
-import org.osmdroid.views.MapView;
+import android.widget.Toast;
+import no.fiksgatami.FiksGataMi;
+import no.fiksgatami.R;
+import no.fiksgatami.utils.CommonUtil;
+import no.fiksgatami.utils.HttpUtil;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 
 public class Home extends Base {
     // ****************************************************
@@ -64,13 +63,10 @@ public class Home extends Base {
     private String email = null;
     private String subject = null;
     // Location info
-    LocationManager locationmanager = null;
-    LocationListener listener;
-    Location location;
+    private LocationManager locationManager;
+    private LocationListener locationListener;
     private Double latitude;
     private Double longitude;
-    private String latString = "";
-    private String longString = "";
     long firstGPSFixTime = 0;
     long latestGPSFixTime = 0;
     long previousGPSFixTime = 0;
@@ -95,10 +91,12 @@ public class Home extends Base {
     final Handler mHandler = new Handler();
     private Bundle extras;
     private TextView textProgress;
+    private TextView textDebug;
     private String exception_string = "";
     private List<String> categories;
     private View progressLoading;
     private ReportUpload taskReportUpload;
+    private String provider;
 
     // Called when the activity is first created
     @Override
@@ -107,7 +105,16 @@ public class Home extends Base {
         setContentView(R.layout.home);
         // Log.d(LOG_TAG, "onCreate, havePicture = " + havePicture);
         settings = getSharedPreferences(PREFS_NAME, 0);
-        testProviders();
+
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+        provider = locationManager.getBestProvider(criteria, false);
+        Log.d(LOG_TAG, "Using provider: " + provider);
+        Location location = locationManager.getLastKnownLocation(provider);
+
+        locationListener = new FGMLocationListener();
+        //locationmanager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, listener);
 
         btnDetails = (Button) findViewById(R.id.details_button);
         btnPicture = (Button) findViewById(R.id.camera_button);
@@ -116,7 +123,13 @@ public class Home extends Base {
         btnReport.setVisibility(View.GONE);
         textProgress = (TextView) findViewById(R.id.progress_text);
         textProgress.setVisibility(View.GONE);
+        textDebug = (TextView) findViewById(R.id.debug_text);
+        textDebug.setText("Debug..");
         progressLoading = findViewById(R.id.loading);
+
+        //locationManager.requestLocationUpdates(provider, 400, 1, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 0, locationListener);
+        //locationListener.onLocationChanged(location);
 
         if (icicle != null) {
             havePicture = icicle.getBoolean("photo");
@@ -163,25 +176,25 @@ public class Home extends Base {
     }
 
     @Override
-    protected void onPause() {
-        // Log.d(LOG_TAG, "onPause, havePicture = " + havePicture);
-        super.onPause();
-        removeListeners();
+    protected void onResume() {
+        super.onResume();
+        Log.d(LOG_TAG, "onResume");
+        locationManager.requestLocationUpdates(provider, 400, 1, locationListener);
     }
 
     @Override
-    protected void onStop() {
-        // Log.d(LOG_TAG, "onStop, havePicture = " + havePicture);
-        super.onStop();
-        removeListeners();
+    protected void onPause() {
+        // Log.d(LOG_TAG, "onPause, havePicture = " + havePicture);
+        Log.d(LOG_TAG, "onPause");
+        super.onPause();
+        locationManager.removeUpdates(locationListener);
     }
 
     @Override
     public void onRestart() {
-        // Log.d(LOG_TAG, "onRestart, havePicture = " + havePicture);
-        testProviders();
-        checkBundle();
         super.onRestart();
+        // Log.d(LOG_TAG, "onRestart, havePicture = " + havePicture);
+        checkBundle();
     }
 
     // ****************************************************
@@ -261,19 +274,21 @@ public class Home extends Base {
                         Environment.getExternalStorageDirectory(),
                         FiksGataMi.PHOTO_FILENAME);
                 if (photo.exists()) {
-                    photo.delete();
+                    boolean success = photo.delete();
+                    if (!success) {
+                        Log.w(LOG_TAG, "Problem deleting image: " + photo.getPath());
+                    }
                 }
-                Intent imageCaptureIntent = new Intent(
-                        MediaStore.ACTION_IMAGE_CAPTURE);
-                imageCaptureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri
-                        .fromFile(photo));
+                Intent imageCaptureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                imageCaptureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photo));
                 startActivityForResult(imageCaptureIntent, REQUEST_UPLOAD_PICTURE);
             }
         });
         btnPosition.setOnClickListener(new OnClickListener() {
             public void onClick(final View view) {
                 Intent i = new Intent(Home.this, Position.class);
-                i.putExtra("fra", Home.class.getSimpleName());
+                i.putExtra("lat", latitude);
+                i.putExtra("long", longitude);
                 startActivity(i);
             }
         });
@@ -348,10 +363,19 @@ public class Home extends Base {
         } else {
             // Success! - Proceed to the success activity!
             Intent i = new Intent(Home.this, Success.class);
-            i.putExtra("latString", latString);
-            i.putExtra("lonString", longString);
+            // TODO andrel: Are "latString" and "longString" used?
+            i.putExtra("latString", latitude());
+            i.putExtra("lonString", longitude());
             startActivity(i);
         }
+    }
+
+    private String latitude() {
+        return latitude == null ? "" : latitude.toString();
+    }
+
+    private String longitude() {
+        return longitude == null ? "" : longitude.toString();
     }
 
     // **********************************************************************
@@ -433,6 +457,7 @@ public class Home extends Base {
             String responseString = HttpUtil.isValidResponse(response);
             if (!CommonUtil.isStringNullOrEmpty(responseString)) {
                 categories = HttpUtil.getCategoriesFromResponse(responseString);
+                Log.d(LOG_TAG, "Fetched categories: " + categories);
                 return true;
             }
         } catch (IOException e) {
@@ -443,12 +468,7 @@ public class Home extends Base {
     }
 
     private boolean checkLoc(Location location) {
-        // get accuracy
-        Log.d(LOG_TAG, "checkLocation");
-        float tempAccuracy = location.getAccuracy();
-        locAccuracy = (int) tempAccuracy;
-        // get time - store the GPS time the first time
-        // it is reported, then check it against future reported times
+        // get time - store the GPS time the first time it is reported, then check it against future reported times
         latestGPSFixTime = location.getTime();
         if (firstGPSFixTime == 0) {
             firstGPSFixTime = latestGPSFixTime;
@@ -458,31 +478,23 @@ public class Home extends Base {
         }
         long timeDiffSecs = (latestGPSFixTime - previousGPSFixTime) / 1000;
 
-        Log.d(LOG_TAG, "~~~~~~~ checkLocation, accuracy = " + locAccuracy
-                + ", firstGPSFixTime = " + firstGPSFixTime + ", gpsTime = "
-                + latestGPSFixTime + ", timeDiffSecs = " + timeDiffSecs);
+        previousGPSFixTime = latestGPSFixTime;
 
+        locAccuracy = (int) location.getAccuracy();
         // Check our location - no good if the GPS accuracy is more than 24m
         if ((locAccuracy > 24) || (timeDiffSecs == 0)) {
             if (timeDiffSecs == 0) {
                 // nor do we want to report if the GPS time hasn't changed at
                 // all - it is probably out of date
-                textProgress
-                .setText(R.string.gps_wait_expired_gps_position);
+                textProgress.setText(R.string.gps_wait_expired_gps_position);
             } else {
-                textProgress
-                .setText(String.format(getString(R.string.gps_wait_require_more_accuracy), locAccuracy));
+                textProgress.setText(String.format(getString(R.string.gps_wait_require_more_accuracy), locAccuracy));
             }
-            //		} else if (locAccuracy == 0) {
-            //			// or if no accuracy data is available
-            //			textProgress
-            //			.setText("Venter på GPS... Pass på at du kan se himmelen.");
+            return false;
         } else {
             // but if all the requirements have been met, proceed
             latitude = location.getLatitude();
             longitude = location.getLongitude();
-            latString = latitude.toString();
-            longString = longitude.toString();
             if (haveDetails && havePicture) {
                 btnReport.setVisibility(View.VISIBLE);
                 btnReport.setText(R.string.gps_signal_found_please_report_now);
@@ -491,60 +503,13 @@ public class Home extends Base {
             } else {
                 textProgress.setText(R.string.gps_signal_found);
             }
-            previousGPSFixTime = latestGPSFixTime;
             mHandler.post(new Runnable() {
-                @Override
                 public void run() {
                     getCategories(); // todo fixme implement spinner logic, show that data is loading
                 }
             });
             return true;
         }
-        previousGPSFixTime = latestGPSFixTime;
-        // textProgress.setText("~~~~~~~ checkLocation, accuracy = "
-        // + locAccuracy + ", locationTimeStored = " + locationTimeStored
-        // + ", gpsTime = " + gpsTime);
-        return false;
-    }
-
-    public boolean testProviders() {
-        // Log.e(LOG_TAG, "testProviders");
-        // Register for location listener
-        String location_context = LOCATION_SERVICE;
-        locationmanager = (LocationManager) getSystemService(location_context);
-        // Criteria criteria = new Criteria();
-        // criteria.setAccuracy(Criteria.ACCURACY_FINE);
-        // criteria.setAltitudeRequired(false);
-        // criteria.setBearingRequired(false);
-        // criteria.setPowerRequirement(Criteria.NO_REQUIREMENT);
-        // criteria.setSpeedRequired(false);
-        // String provider = locationmanager.getBestProvider(criteria, true);
-        if (!locationmanager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            buildAlertMessageNoGps();
-            return false;
-        }
-        listener = new LocationListener() {
-            public void onLocationChanged(Location location) {
-                // keep checking the location + updating text - until we have
-                // what we need
-                if (!locationDetermined) {
-                    checkLoc(location);
-                }
-            }
-
-            public void onProviderDisabled(String provider) {
-            }
-
-            public void onProviderEnabled(String provider) {
-            }
-
-            public void onStatusChanged(String provider, int status,
-                    Bundle extras) {
-            }
-        };
-        locationmanager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0,
-                0, listener);
-        return true;
     }
 
     private void buildAlertMessageNoGps() {
@@ -574,10 +539,10 @@ public class Home extends Base {
 
     public void removeListeners() {
         // Log.e(LOG_TAG, "removeListeners");
-        if ((locationmanager != null) && (listener != null)) {
-            locationmanager.removeUpdates(listener);
+        if ((locationManager != null) && (locationListener != null)) {
+            locationManager.removeUpdates(locationListener);
         }
-        locationmanager = null;
+        locationManager = null;
         // Log.d(LOG_TAG, "Removed " + listener.toString());
     }
 
@@ -730,6 +695,35 @@ public class Home extends Base {
         protected void onPostExecute(Boolean result) {
             pd.dismiss();
             updateResultsInUi();
+        }
+    }
+
+    private class FGMLocationListener implements LocationListener {
+        public void onLocationChanged(Location location) {
+            Log.d(LOG_TAG, "OnLocationChanged[" + location.getProvider() + "] " + location.getLongitude() + "/" + location.getLatitude());
+            textDebug.setText("OnLocationChanged[" + location.getProvider() + "] " + location.getLongitude() + "/" + location.getLatitude());
+
+            latitude = location.getLatitude();
+            longitude = location.getLongitude();
+
+            // keep checking the location + updating text - until we have what we need
+            if (!locationDetermined) {
+                //checkLoc(location);
+            }
+        }
+
+        public void onProviderDisabled(String provider) {
+            Log.d(LOG_TAG, "Disabled provider " + provider);
+            Toast.makeText(Home.this, "Disabled provider " + provider, Toast.LENGTH_SHORT).show();
+        }
+
+        public void onProviderEnabled(String provider) {
+            Log.d(LOG_TAG, "Enabled new provider " + provider);
+            Toast.makeText(Home.this, "Enabled new provider " + provider, Toast.LENGTH_SHORT).show();
+        }
+
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            Log.d(LOG_TAG, "StatusChanged[" + provider + "] " + status + "(" + extras.get("satellites") +  ")");
         }
     }
 }

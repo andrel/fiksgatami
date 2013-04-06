@@ -99,5 +99,6 @@
 	<string name="report">Rapporter til FiksGataMi</string>
 	<string name="background_image_description">Bakgrunnsbilde</string>
 	<string name="find_position">Velg posisjon</string>
+	<string name="debug_text">Debug-info.</string>
 
 </resources>
