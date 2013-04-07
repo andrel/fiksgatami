@@ -100,5 +100,6 @@
 	<string name="background_image_description">Bakgrunnsbilde</string>
 	<string name="find_position">Velg posisjon</string>
 	<string name="debug_text">Debug-info.</string>
+	<string name="image_preview_description">Bilde</string>
 
 </resources>

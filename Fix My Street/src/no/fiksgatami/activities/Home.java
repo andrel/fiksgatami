@@ -11,6 +11,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.location.Criteria;
 import android.location.Location;
@@ -23,6 +25,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.telephony.TelephonyManager;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -30,6 +33,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import no.fiksgatami.FiksGataMi;
@@ -40,6 +44,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -97,6 +102,11 @@ public class Home extends Base {
     private View progressLoading;
     private ReportUpload taskReportUpload;
     private String provider;
+    private ImageView imagePreview;
+    private static boolean adjustThumbnailLayout = true;
+    private byte[] thumbData;
+    private File photo;
+    private DisplayMetrics displayMetrics;
 
     // Called when the activity is first created
     @Override
@@ -106,6 +116,7 @@ public class Home extends Base {
         // Log.d(LOG_TAG, "onCreate, havePicture = " + havePicture);
         settings = getSharedPreferences(PREFS_NAME, 0);
 
+        setDisplayMetrics();
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_COARSE);
@@ -114,7 +125,6 @@ public class Home extends Base {
         Location location = locationManager.getLastKnownLocation(provider);
 
         locationListener = new FGMLocationListener();
-        //locationmanager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, listener);
 
         btnDetails = (Button) findViewById(R.id.details_button);
         btnPicture = (Button) findViewById(R.id.camera_button);
@@ -126,10 +136,9 @@ public class Home extends Base {
         textDebug = (TextView) findViewById(R.id.debug_text);
         textDebug.setText("Debug..");
         progressLoading = findViewById(R.id.loading);
+        imagePreview = (ImageView) findViewById(R.id.image_preview);
 
-        //locationManager.requestLocationUpdates(provider, 400, 1, locationListener);
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 0, locationListener);
-        //locationListener.onLocationChanged(location);
 
         if (icicle != null) {
             havePicture = icicle.getBoolean("photo");
@@ -137,6 +146,8 @@ public class Home extends Base {
         } else {
             Log.d(LOG_TAG, "icicle null");
         }
+        updateImagePreview();
+
         extras = getIntent().getExtras();
         checkBundle();
         setListeners();
@@ -163,15 +174,59 @@ public class Home extends Base {
             editor.putBoolean("hasSeenUpdateVersion" + vc, true);
             editor.commit();
         }
+        verifyCountry();
+    }
 
+    /**
+     * Update the {@code imagePreview} component.
+     * <p/>
+     * If a photo has been selected, create and display a thumbnail. If not, then display a default image.
+     */
+    private void updateImagePreview() {
+        if (photo != null) {
+            createThumbnail();
+            imagePreview.setImageBitmap(BitmapFactory.decodeByteArray(thumbData, 0, thumbData.length));
+            Log.d(LOG_TAG, "ImagePreview created new thumbnail.");
+        } else {
+            imagePreview.setImageDrawable(getResources().getDrawable(R.id.background_image));
+            Log.d(LOG_TAG, "ImagePreview set default thumbnail.");
+        }
+    }
+
+    private void setDisplayMetrics() {
+        //gets screen dimensions
+        displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+    }
+
+    /**
+     * Check that the phone are in a required country.
+     */
+    private void verifyCountry() {
         // TODO: Telephonymanager will probably not work on i.e tablets w/o gsm, check this
         // Check country: show warning if not in Great Britain
-        TelephonyManager mTelephonyMgr = (TelephonyManager) this
-        .getSystemService(TELEPHONY_SERVICE);
+        TelephonyManager mTelephonyMgr = (TelephonyManager) this.getSystemService(TELEPHONY_SERVICE);
         String country = mTelephonyMgr.getNetworkCountryIso();
         Log.d(LOG_TAG, "country = " + country);
         if (!(country.matches("no"))) {
             showDialog(COUNTRY_ERROR);
+        }
+    }
+
+    private void createThumbnail() {
+        try {
+            FileInputStream fis = new FileInputStream(photo.getAbsoluteFile());
+            Bitmap bm = BitmapFactory.decodeStream(fis);
+
+            bm = Bitmap.createScaledBitmap(bm, displayMetrics.widthPixels, displayMetrics.widthPixels, false);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bm.compress(Bitmap.CompressFormat.PNG, 100, baos);
+            thumbData = baos.toByteArray();
+        } catch (IOException e) {
+            // TODO Lindhjem: Revert to placeholder pic?
+            thumbData = null;
+            Log.e(LOG_TAG, e.getLocalizedMessage(), e);
         }
     }
 
@@ -238,8 +293,7 @@ public class Home extends Base {
         // Do we have the photo?
         if (havePicture) {
 
-            checked.setBounds(0, 0, checked.getIntrinsicWidth(), checked
-                    .getIntrinsicHeight());
+            checked.setBounds(0, 0, checked.getIntrinsicWidth(), checked.getIntrinsicHeight());
             // camera.setBounds(0, 0, camera.getIntrinsicWidth(), camera
             // .getIntrinsicHeight());
             btnPicture.setCompoundDrawables(null, null, checked, null);
@@ -274,6 +328,7 @@ public class Home extends Base {
                         Environment.getExternalStorageDirectory(),
                         FiksGataMi.PHOTO_FILENAME);
                 if (photo.exists()) {
+                    // TODO Lindhjem: Also delete thumbnail.
                     boolean success = photo.delete();
                     if (!success) {
                         Log.w(LOG_TAG, "Problem deleting image: " + photo.getPath());
@@ -309,12 +364,19 @@ public class Home extends Base {
         if (resultCode == RESULT_OK && requestCode == REQUEST_UPLOAD_PICTURE) {
             havePicture = true;
             extras.putBoolean("photo", true);
+
+            // Update button with "done"-symbol.
             Resources res = getResources();
             Drawable checked = res.getDrawable(R.drawable.done);
-            checked.setBounds(0, 0, checked.getIntrinsicWidth(), checked
-                    .getIntrinsicHeight());
+            checked.setBounds(0, 0, checked.getIntrinsicWidth(), checked.getIntrinsicHeight());
             btnPicture.setCompoundDrawables(null, null, checked, null);
             btnPicture.setText(R.string.picture_taken);
+
+            photo = new File(
+                    Environment.getExternalStorageDirectory(),
+                    FiksGataMi.PHOTO_FILENAME);
+
+            updateImagePreview();
         }
         Log.d(LOG_TAG, "havePicture = " + havePicture.toString());
     }
@@ -700,7 +762,6 @@ public class Home extends Base {
 
     private class FGMLocationListener implements LocationListener {
         public void onLocationChanged(Location location) {
-            Log.d(LOG_TAG, "OnLocationChanged[" + location.getProvider() + "] " + location.getLongitude() + "/" + location.getLatitude());
             textDebug.setText("OnLocationChanged[" + location.getProvider() + "] " + location.getLongitude() + "/" + location.getLatitude());
 
             latitude = location.getLatitude();

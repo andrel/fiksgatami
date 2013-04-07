@@ -8,6 +8,15 @@
 		android:orientation="vertical" android:layout_width="fill_parent"
 		android:layout_height="wrap_content" android:paddingTop="10dip">
 
+		<ImageView android:id="@+id/image_preview"
+		           android:layout_width="fill_parent"
+		           android:layout_height="wrap_content"
+		           android:paddingLeft="10dip"
+		           android:paddingRight="10dip"
+		           android:contentDescription="@string/image_preview_description"
+		           android:src="@drawable/house_icon"
+		           />
+
 		<Button android:id="@+id/camera_button"
 		        android:layout_width="fill_parent"
 		        android:layout_height="wrap_content"
