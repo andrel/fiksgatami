@@ -11,8 +11,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.location.Criteria;
 import android.location.Location;
@@ -44,7 +43,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -55,11 +53,12 @@ public class Home extends Base {
     // ****************************************************
     // Local variables
     // ****************************************************
-    private static final String LOG_TAG = "Home";
+    private static final String LOG_TAG = Home.class.getSimpleName();
     public static final String PREFS_NAME = "FMS_Settings";
     private Button btnReport;
     private Button btnDetails;
     private Button btnPicture;
+    private Button btnPictureFromGallery;
     private Button btnPosition;
     // Info that's been passed from other activities
     private Boolean haveDetails = false;
@@ -103,31 +102,20 @@ public class Home extends Base {
     private ReportUpload taskReportUpload;
     private String provider;
     private ImageView imagePreview;
-    private static boolean adjustThumbnailLayout = true;
-    private byte[] thumbData;
-    private File photo;
+    private String photouri;
     private DisplayMetrics displayMetrics;
 
     // Called when the activity is first created
     @Override
-    public void onCreate(Bundle icicle) {
-        super.onCreate(icicle);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.home);
         // Log.d(LOG_TAG, "onCreate, havePicture = " + havePicture);
-        settings = getSharedPreferences(PREFS_NAME, 0);
-
-        setDisplayMetrics();
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        Criteria criteria = new Criteria();
-        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
-        provider = locationManager.getBestProvider(criteria, false);
-        Log.d(LOG_TAG, "Using provider: " + provider);
-        Location location = locationManager.getLastKnownLocation(provider);
-
-        locationListener = new FGMLocationListener();
+        settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
         btnDetails = (Button) findViewById(R.id.details_button);
         btnPicture = (Button) findViewById(R.id.camera_button);
+        btnPictureFromGallery = (Button) findViewById(R.id.gallery_button);
         btnPosition = (Button) findViewById(R.id.position_button);
         btnReport = (Button) findViewById(R.id.report_button);
         btnReport.setVisibility(View.GONE);
@@ -138,20 +126,53 @@ public class Home extends Base {
         progressLoading = findViewById(R.id.loading);
         imagePreview = (ImageView) findViewById(R.id.image_preview);
 
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 0, locationListener);
 
-        if (icicle != null) {
-            havePicture = icicle.getBoolean("photo");
-            Log.d(LOG_TAG, "icicle not null, havePicture = " + havePicture);
-        } else {
-            Log.d(LOG_TAG, "icicle null");
-        }
-        updateImagePreview();
+//        if (savedInstanceState != null) {
+//            havePicture = savedInstanceState.getBoolean("photo");
+//            photouri = savedInstanceState.getString("photouri");
+//            Log.d(LOG_TAG, "savedInstanceState not null, havePicture = " + photouri);
+//        } else {
+//            photouri = null;
+//            Log.d(LOG_TAG, "savedInstanceState null");
+//        }
+//        CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.id.background_image));
 
         extras = getIntent().getExtras();
         checkBundle();
         setListeners();
+        handleUpdatedVersion();
+        verifyCountry();
+    }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        setDisplayMetrics();
+
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+        provider = locationManager.getBestProvider(criteria, false);
+        Log.d(LOG_TAG, "Using provider: " + provider);
+        Location location = locationManager.getLastKnownLocation(provider);
+
+        locationListener = new FGMLocationListener();
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 0, locationListener);
+
+        CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.id.background_image));
+    }
+
+    private void setDisplayMetrics() {
+        //gets screen dimensions
+        displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+    }
+
+    /**
+     * Display message to user the first time he views a "new" version of the program.
+     */
+    private void handleUpdatedVersion() {
         // Show update message - but not to new users
         int vc = 0;
         try {
@@ -174,29 +195,6 @@ public class Home extends Base {
             editor.putBoolean("hasSeenUpdateVersion" + vc, true);
             editor.commit();
         }
-        verifyCountry();
-    }
-
-    /**
-     * Update the {@code imagePreview} component.
-     * <p/>
-     * If a photo has been selected, create and display a thumbnail. If not, then display a default image.
-     */
-    private void updateImagePreview() {
-        if (photo != null) {
-            createThumbnail();
-            imagePreview.setImageBitmap(BitmapFactory.decodeByteArray(thumbData, 0, thumbData.length));
-            Log.d(LOG_TAG, "ImagePreview created new thumbnail.");
-        } else {
-            imagePreview.setImageDrawable(getResources().getDrawable(R.id.background_image));
-            Log.d(LOG_TAG, "ImagePreview set default thumbnail.");
-        }
-    }
-
-    private void setDisplayMetrics() {
-        //gets screen dimensions
-        displayMetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
     }
 
     /**
@@ -213,25 +211,9 @@ public class Home extends Base {
         }
     }
 
-    private void createThumbnail() {
-        try {
-            FileInputStream fis = new FileInputStream(photo.getAbsoluteFile());
-            Bitmap bm = BitmapFactory.decodeStream(fis);
-
-            bm = Bitmap.createScaledBitmap(bm, displayMetrics.widthPixels, displayMetrics.widthPixels, false);
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            bm.compress(Bitmap.CompressFormat.PNG, 100, baos);
-            thumbData = baos.toByteArray();
-        } catch (IOException e) {
-            // TODO Lindhjem: Revert to placeholder pic?
-            thumbData = null;
-            Log.e(LOG_TAG, e.getLocalizedMessage(), e);
-        }
-    }
-
     @Override
     protected void onResume() {
+        // Restore persistent state.
         super.onResume();
         Log.d(LOG_TAG, "onResume");
         locationManager.requestLocationUpdates(provider, 400, 1, locationListener);
@@ -239,6 +221,7 @@ public class Home extends Base {
 
     @Override
     protected void onPause() {
+        // Save persistent state.
         // Log.d(LOG_TAG, "onPause, havePicture = " + havePicture);
         Log.d(LOG_TAG, "onPause");
         super.onPause();
@@ -248,7 +231,7 @@ public class Home extends Base {
     @Override
     public void onRestart() {
         super.onRestart();
-        // Log.d(LOG_TAG, "onRestart, havePicture = " + havePicture);
+        Log.d(LOG_TAG, "onRestart");
         checkBundle();
     }
 
@@ -328,7 +311,6 @@ public class Home extends Base {
                         Environment.getExternalStorageDirectory(),
                         FiksGataMi.PHOTO_FILENAME);
                 if (photo.exists()) {
-                    // TODO Lindhjem: Also delete thumbnail.
                     boolean success = photo.delete();
                     if (!success) {
                         Log.w(LOG_TAG, "Problem deleting image: " + photo.getPath());
@@ -337,6 +319,14 @@ public class Home extends Base {
                 Intent imageCaptureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                 imageCaptureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photo));
                 startActivityForResult(imageCaptureIntent, REQUEST_UPLOAD_PICTURE);
+            }
+        });
+        btnPictureFromGallery.setOnClickListener(new OnClickListener() {
+            public void onClick(final View view) {
+                Intent i = new Intent();
+                i.setType("image/*");
+                i.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(i, "Velg bilde"), PICK_UPLOAD_PICTURE);
             }
         });
         btnPosition.setOnClickListener(new OnClickListener() {
@@ -357,48 +347,59 @@ public class Home extends Base {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // Log.d(LOG_TAG, "onActivityResult");
-        // Log.d(LOG_TAG, "Activity.RESULT_OK code = " + Activity.RESULT_OK);
-        // Log.d(LOG_TAG, "resultCode = " + resultCode + "requestCode = "
-        // + requestCode);
         if (resultCode == RESULT_OK && requestCode == REQUEST_UPLOAD_PICTURE) {
-            havePicture = true;
-            extras.putBoolean("photo", true);
-
-            // Update button with "done"-symbol.
-            Resources res = getResources();
-            Drawable checked = res.getDrawable(R.drawable.done);
-            checked.setBounds(0, 0, checked.getIntrinsicWidth(), checked.getIntrinsicHeight());
-            btnPicture.setCompoundDrawables(null, null, checked, null);
-            btnPicture.setText(R.string.picture_taken);
-
-            photo = new File(
-                    Environment.getExternalStorageDirectory(),
-                    FiksGataMi.PHOTO_FILENAME);
-
-            updateImagePreview();
+            updatePictureButton();
+            photouri = Environment.getExternalStorageDirectory() + FiksGataMi.PHOTO_FILENAME;
+            CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.id.background_image));
+        } else if (resultCode == RESULT_OK && requestCode == PICK_UPLOAD_PICTURE && data != null && data.getData() != null) {
+            Uri uri = data.getData();
+            if (uri != null) {
+                Cursor cursor = getContentResolver().query(uri, new String[]{MediaStore.Images.ImageColumns.DATA}, null, null, null);
+                cursor.moveToFirst();
+                photouri = cursor.getString(0);
+                CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.id.background_image));
+                cursor.close();
+            }
+        } else {
+            Log.w(LOG_TAG, String.format("onActivityResult with unknown requestCode/resultCode: %s/%s", requestCode, resultCode));
         }
-        Log.d(LOG_TAG, "havePicture = " + havePicture.toString());
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    /**
+     * Update button with "done"-symbol and new text label.
+     */
+    private void updatePictureButton() {
+        Drawable checked = getResources().getDrawable(R.drawable.done);
+        checked.setBounds(0, 0, checked.getIntrinsicWidth(), checked.getIntrinsicHeight());
+        btnPicture.setCompoundDrawables(null, null, checked, null);
+        btnPicture.setText(R.string.picture_taken);
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        Log.d(LOG_TAG, "onSaveInstanceState, havePicture " + havePicture);
-        // Log.d(LOG_TAG, "onSaveInstanceState");
+        super.onSaveInstanceState(outState);
+        // Save state related to the activity (transient state)
+        Log.d(LOG_TAG, "onSaveInstanceState");
+
+        outState.putString("photouri", photouri);
+
         if (havePicture != null) {
             // Log.d(LOG_TAG, "mRowId = " + mRowId);
             outState.putBoolean("photo", havePicture);
         }
-        super.onSaveInstanceState(outState);
+        Log.d(LOG_TAG, "" + photouri);
     }
 
     @Override
     public void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        // Restore UI state from the savedInstanceState.
-        // This bundle has also been passed to onCreate.
+        // Restore state related to the activity (transient state)
+        Log.d(LOG_TAG, "onRestoreInstanceState");
+
         havePicture = savedInstanceState.getBoolean("photo");
-        Log.d(LOG_TAG, "onRestoreInstanceState, havePicture " + havePicture);
+        photouri = savedInstanceState.getString("photouri");
+        Log.d(LOG_TAG, "" + photouri);
     }
 
     // **********************************************************************
@@ -515,6 +516,12 @@ public class Home extends Base {
 
     private boolean getCategories() {
         try {
+            // TODO andlin: Bruk API: http://www.fiksgatami.no/open311
+            // TODO andlin: Logg/sjekk at dette ikke kalles gjentatte ganger.
+	        if (true) {
+	            throw new RuntimeException("Hopper over henting av kategorier (for nå)!");
+	        }
+
             HttpResponse response = HttpUtil.getCategories(this, latitude, longitude);
             String responseString = HttpUtil.isValidResponse(response);
             if (!CommonUtil.isStringNullOrEmpty(responseString)) {
@@ -574,40 +581,6 @@ public class Home extends Base {
         }
     }
 
-    private void buildAlertMessageNoGps() {
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder
-        .setMessage(R.string.gps_activate_for_deliveries)
-        .setCancelable(false).setPositiveButton(R.string.common_yes,
-                new DialogInterface.OnClickListener() {
-            public void onClick(
-                    final DialogInterface dialog,
-                    final int id) {
-                Intent j = new Intent();
-                j
-                .setAction("android.settings.LOCATION_SOURCE_SETTINGS");
-                startActivity(j);
-            }
-        }).setNegativeButton(R.string.common_no,
-                new DialogInterface.OnClickListener() {
-            public void onClick(final DialogInterface dialog,
-                    final int id) {
-                dialog.cancel();
-            }
-        });
-        final AlertDialog alert = builder.create();
-        alert.show();
-    }
-
-    public void removeListeners() {
-        // Log.e(LOG_TAG, "removeListeners");
-        if ((locationManager != null) && (locationListener != null)) {
-            locationManager.removeUpdates(locationListener);
-        }
-        locationManager = null;
-        // Log.d(LOG_TAG, "Removed " + listener.toString());
-    }
-
     public boolean onKeyDown(int keyCode, KeyEvent event)  {
         if (  Integer.valueOf(android.os.Build.VERSION.SDK) < 7 //Instead use android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.ECLAIR
                 && keyCode == KeyEvent.KEYCODE_BACK
@@ -620,14 +593,12 @@ public class Home extends Base {
         return super.onKeyDown(keyCode, event);
     }
 
-    //@Override
     public void onBackPressed() {
         // TODO: This dosen't work - we are still sendt back to the last activity
         // This will be called either automatically for you on 2.0
         // or later, or by the code above on earlier versions of the
         // platform.
         finish(); // Close application on back-press
-        return;
     }
 
     // ****************************************************
@@ -784,7 +755,7 @@ public class Home extends Base {
         }
 
         public void onStatusChanged(String provider, int status, Bundle extras) {
-            Log.d(LOG_TAG, "StatusChanged[" + provider + "] " + status + "(" + extras.get("satellites") +  ")");
+            //Log.d(LOG_TAG, "StatusChanged[" + provider + "] " + status + "(" + extras.get("satellites") +  ")");
         }
     }
 }

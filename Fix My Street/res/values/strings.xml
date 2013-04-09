@@ -101,5 +101,6 @@
 	<string name="find_position">Velg posisjon</string>
 	<string name="debug_text">Debug-info.</string>
 	<string name="image_preview_description">Bilde</string>
+	<string name="choose_photo">Velg bilde</string>
 
 </resources>
