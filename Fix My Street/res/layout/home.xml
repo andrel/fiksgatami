@@ -40,7 +40,7 @@
 			
 		<TextView
 				style="@style/FgmTextView"
-		        android:textColor="#87190f"
+		        android:textColor="@color/textColor"
 		        android:id="@+id/progress_text"
 		        android:text="@string/awaiting_gps"
 		/>
