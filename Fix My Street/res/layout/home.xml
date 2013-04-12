@@ -26,7 +26,7 @@
 		/>
 
 		<EditText android:id="@+id/submission_title"
-		          style="@style/FgmEditText"
+		          style="@style/textbox"
 		          android:text="@string/submission_title"
 		/>
 

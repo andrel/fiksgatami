@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<style name="FgmButton" parent="android:Widget.Button">
-	</style>
 	<style name="button">
 		<item name="android:background">@drawable/button</item>
 		<item name="android:textColor">@color/white</item>
@@ -17,19 +15,11 @@
 		<item name="android:layout_width">fill_parent</item>
 		<item name="android:layout_height">wrap_content</item>
 	</style>
-	<style name="FgmImageButton" parent="android:Widget">
-		<item name="android:layout_width">fill_parent</item>
-		<item name="android:layout_height">wrap_content</item>
-	</style>
-	<style name="ImageButton" parent="style/FgmImageButton">
-		<item name="android:layout_width">fill_parent</item>
-		<item name="android:layout_height">wrap_content</item>
-	</style>
 	<style name="FgmTextView" parent="android:Widget.TextView">
 		<item name="android:layout_width">fill_parent</item>
 		<item name="android:layout_height">wrap_content</item>
 	</style>
-	<style name="FgmEditText">
+	<style name="textbox">
 		<item name="android:layout_width">fill_parent</item>
 		<item name="android:layout_height">wrap_content</item>
 		<item name="android:layout_margin">10dp</item>
