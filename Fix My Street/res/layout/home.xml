@@ -8,21 +8,20 @@
 	<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
 		android:orientation="vertical"
 		android:layout_width="fill_parent"
-		android:layout_height="wrap_content"
-		android:paddingTop="10dip">
+		android:layout_height="wrap_content">
 
 		<ImageButton android:id="@+id/image_preview"
-		             style="@style/ImageButton"
+		             style="@style/imageview"
 		             android:contentDescription="@string/image_preview_description"
 		             android:src="@drawable/street_background_smaller"
 		/>
 		<Button android:id="@+id/camera_button"
-		        style="@style/Widget.FgmButton"
+		        style="@style/button"
 		        android:text="@string/take_photo"
 		/>
 
 		<Button android:id="@+id/gallery_button"
-		        style="@style/Widget.FgmButton"
+		        style="@style/button"
 		        android:text="@string/choose_photo"
 		/>
 
@@ -32,7 +31,7 @@
 		/>
 
 		<Button android:id="@+id/position_button"
-		        style="@style/Widget.FgmButton"
+		        style="@style/button"
 		        android:text="@string/find_position"
 		/>
 
@@ -48,6 +47,7 @@
 
 		<TextView android:id="@+id/debug_text"
 		          style="@style/FgmTextView"
+		          android:lines="1"
 		          android:text="@string/debug_text" />
 
         <ProgressBar android:id="@+id/loading"
@@ -61,7 +61,7 @@
                      />
 
 		<Button android:id="@+id/report_button"
-		        style="@style/Widget.FgmButton"
+		        style="@style/button"
 		        android:layout_width="fill_parent"
 		        android:layout_height="wrap_content"
 		        android:text="@string/report"

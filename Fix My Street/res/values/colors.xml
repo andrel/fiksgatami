@@ -1,4 +1,14 @@
 <resources>
+	<color name="b1">#7F9EBA</color>
+	<color name="b2">#657E94</color>
+	<color name="b3">#4B5D6E</color>
+	<color name="b4">#BAAE7F</color>
+	<color name="b5">#948365</color>
+	<color name="b6">#6E614B</color>
+	<color name="b7">#454545</color>
+	<color name="b8">#BABABA</color>
+	<color name="b9">#000000</color>
+
 	<color name="background_blue">#99bfe1</color>
 	<color name="textColor">#000000</color>
 	<color name="white">@android:color/white</color>
