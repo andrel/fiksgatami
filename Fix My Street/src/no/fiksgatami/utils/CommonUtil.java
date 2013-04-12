@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import java.io.ByteArrayOutputStream;
@@ -40,7 +41,7 @@ public class CommonUtil {
     }
 
     // TODO Lindhjem: Investigate what with thumbnail when phone enters/leaves portrait mode.
-    public static void updateImage(final ImageView imagePreview, final String photouri, final int widthPixels, final Drawable default_image) {
+    public static void updateImage(final ImageButton imagePreview, final String photouri, final int widthPixels, final Drawable default_image) {
         if (default_image == null) {
             throw new IllegalArgumentException("Param default_image cannot be null");
         }

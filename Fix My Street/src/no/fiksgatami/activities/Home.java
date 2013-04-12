@@ -10,9 +10,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.content.res.Resources;
 import android.database.Cursor;
-import android.graphics.drawable.Drawable;
+import android.graphics.Bitmap;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -32,7 +31,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
-import android.widget.ImageView;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import no.fiksgatami.FiksGataMi;
@@ -56,7 +56,7 @@ public class Home extends Base {
     private static final String LOG_TAG = Home.class.getSimpleName();
     public static final String PREFS_NAME = "FMS_Settings";
     private Button btnReport;
-    private Button btnDetails;
+    private EditText textSubmissionTitle;
     private Button btnPicture;
     private Button btnPictureFromGallery;
     private Button btnPosition;
@@ -101,7 +101,7 @@ public class Home extends Base {
     private View progressLoading;
     private ReportUpload taskReportUpload;
     private String provider;
-    private ImageView imagePreview;
+    private ImageButton imagePreview;
     private String photouri;
     private DisplayMetrics displayMetrics;
 
@@ -113,7 +113,7 @@ public class Home extends Base {
         // Log.d(LOG_TAG, "onCreate, havePicture = " + havePicture);
         settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
-        btnDetails = (Button) findViewById(R.id.details_button);
+        textSubmissionTitle = (EditText) findViewById(R.id.submission_title);
         btnPicture = (Button) findViewById(R.id.camera_button);
         btnPictureFromGallery = (Button) findViewById(R.id.gallery_button);
         btnPosition = (Button) findViewById(R.id.position_button);
@@ -124,7 +124,7 @@ public class Home extends Base {
         textDebug = (TextView) findViewById(R.id.debug_text);
         textDebug.setText("Debug..");
         progressLoading = findViewById(R.id.loading);
-        imagePreview = (ImageView) findViewById(R.id.image_preview);
+        imagePreview = (ImageButton) findViewById(R.id.image_preview);
 
 
 //        if (savedInstanceState != null) {
@@ -160,7 +160,7 @@ public class Home extends Base {
         locationListener = new FGMLocationListener();
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 0, locationListener);
 
-        CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.id.background_image));
+        //CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.drawable.street_background_smaller));
     }
 
     private void setDisplayMetrics() {
@@ -241,9 +241,6 @@ public class Home extends Base {
     // ****************************************************
     private void checkBundle() {
         // Log.d(LOG_TAG, "checkBundle");
-        // Get the status icons...
-        Resources res = getResources();
-        Drawable checked = res.getDrawable(R.drawable.done);
         if (extras != null) {
             // Log.d(LOG_TAG, "Checking extras");
             // Details extras
@@ -256,14 +253,6 @@ public class Home extends Base {
             // Do we have the details?
             if ((name != null) && (email != null) && (subject != null)) {
                 haveDetails = true;
-                // Log.d(LOG_TAG, "Have all details");
-                checked.setBounds(0, 0, checked.getIntrinsicWidth(), checked
-                        .getIntrinsicHeight());
-                // envelope.setBounds(0, 0, envelope.getIntrinsicWidth(),
-                // envelope
-                // .getIntrinsicHeight());
-                btnDetails.setText(String.format(getString(R.string.subject_details_added), subject));
-                btnDetails.setCompoundDrawables(null, null, checked, null);
             } else {
                 // Log.d(LOG_TAG, "Don't have details");
             }
@@ -275,11 +264,6 @@ public class Home extends Base {
 
         // Do we have the photo?
         if (havePicture) {
-
-            checked.setBounds(0, 0, checked.getIntrinsicWidth(), checked.getIntrinsicHeight());
-            // camera.setBounds(0, 0, camera.getIntrinsicWidth(), camera
-            // .getIntrinsicHeight());
-            btnPicture.setCompoundDrawables(null, null, checked, null);
             btnPicture.setText(R.string.picture_taken);
         }
         if (havePicture && haveDetails) {
@@ -293,18 +277,6 @@ public class Home extends Base {
     // ****************************************************
 
     private void setListeners() {
-        btnDetails.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                Intent i = new Intent(Home.this, Details.class);
-                extras.putString("name", name);
-                extras.putString("email", email);
-                extras.putString("subject", subject);
-                extras.putBoolean("photo", havePicture);
-
-                i.putExtras(extras);
-                startActivity(i);
-            }
-        });
         btnPicture.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 File photo = new File(
@@ -343,36 +315,60 @@ public class Home extends Base {
                 uploadToFMS();
             }
         });
+        imagePreview.setOnClickListener(new OnClickListener() {
+            public void onClick(final View view) {
+                // TODO andlin: http://developer.android.com/training/camera/photobasics.html sjekk isIntentAvailable.
+                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                startActivityForResult(takePictureIntent, RECIEVE_CAMERA_PICTURE);
+/*
+                AlertDialog.Builder builder = new AlertDialog.Builder(Home.this);
+                AlertDialog alertDialog = builder.create();
+                alertDialog.setTitle("Velg bilde");
+                alertDialog.setMessage("Velg hvor du vil finne bilde.");
+                alertDialog.setButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialogInterface, final int i) {
+                        Log.d(LOG_TAG, "Alert dialog clicked!");
+                    }
+                });
+                alertDialog.show();
+*/
+            }
+        });
     }
+
+
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK && requestCode == REQUEST_UPLOAD_PICTURE) {
             updatePictureButton();
             photouri = Environment.getExternalStorageDirectory() + FiksGataMi.PHOTO_FILENAME;
-            CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.id.background_image));
+            CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.drawable.street_background_smaller));
         } else if (resultCode == RESULT_OK && requestCode == PICK_UPLOAD_PICTURE && data != null && data.getData() != null) {
-            Uri uri = data.getData();
-            if (uri != null) {
-                Cursor cursor = getContentResolver().query(uri, new String[]{MediaStore.Images.ImageColumns.DATA}, null, null, null);
-                cursor.moveToFirst();
-                photouri = cursor.getString(0);
-                CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.id.background_image));
-                cursor.close();
-            }
+//            Uri uri = data.getData();
+//            if (uri != null) {
+//                Cursor cursor = getContentResolver().query(uri, new String[]{MediaStore.Images.ImageColumns.DATA}, null, null, null);
+//                cursor.moveToFirst();
+//                photouri = cursor.getString(0);
+//                CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.drawable.street_background_smaller));
+//                cursor.close();
+//            }
         } else {
             Log.w(LOG_TAG, String.format("onActivityResult with unknown requestCode/resultCode: %s/%s", requestCode, resultCode));
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    private void handleSmallCameraPhoto(Intent intent) {
+        Bundle extras = intent.getExtras();
+        Bitmap mImageBitmap = (Bitmap) extras.get("data");
+        imagePreview.setImageBitmap(mImageBitmap);
+    }
+
     /**
      * Update button with "done"-symbol and new text label.
      */
     private void updatePictureButton() {
-        Drawable checked = getResources().getDrawable(R.drawable.done);
-        checked.setBounds(0, 0, checked.getIntrinsicWidth(), checked.getIntrinsicHeight());
-        btnPicture.setCompoundDrawables(null, null, checked, null);
         btnPicture.setText(R.string.picture_taken);
     }
 

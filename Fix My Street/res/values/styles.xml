@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<style name="FgmButton" parent="android:Widget.Button">
+	</style>
+	<style name="Widget.FgmButton" parent="FgmButton">
+		<item name="android:paddingLeft">10dip</item>
+		<item name="android:paddingRight">10dip</item>
+		<item name="android:layout_width">fill_parent</item>
+		<item name="android:layout_height">wrap_content</item>
+	</style>
+	<style name="FgmImageButton" parent="android:Widget">
+		<item name="android:layout_width">fill_parent</item>
+		<item name="android:layout_height">wrap_content</item>
+	</style>
+	<style name="ImageButton" parent="style/FgmImageButton">
+		<item name="android:layout_width">fill_parent</item>
+		<item name="android:layout_height">wrap_content</item>
+	</style>
+	<style name="FgmTextView" parent="android:Widget.TextView">
+		<item name="android:layout_width">fill_parent</item>
+		<item name="android:layout_height">wrap_content</item>
+	</style>
+	<style name="FgmEditText">
+		<item name="android:layout_width">fill_parent</item>
+		<item name="android:layout_height">wrap_content</item>
+		<item name="android:singleLine">true</item>
+	</style>
+</resources>

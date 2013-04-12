@@ -102,5 +102,7 @@
 	<string name="debug_text">Debug-info.</string>
 	<string name="image_preview_description">Bilde</string>
 	<string name="choose_photo">Velg bilde</string>
+	<string name="submission_title">Tittel</string>
+	<string name="choose_photo_source">Velg bilde fra..</string>
 
 </resources>
