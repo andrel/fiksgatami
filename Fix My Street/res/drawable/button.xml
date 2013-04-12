@@ -4,12 +4,18 @@
 	<item android:state_pressed="true">
 		<shape>
 			<solid android:color="@color/b3"/>
+			<padding android:left="15dp" />
+			<padding android:right="15dp" />
+			<corners android:radius="7dp" />
 		</shape>
 	</item>
 
 	<item android:state_focused="true">
 		<shape>
 			<solid android:color="@color/b8"/>
+			<padding android:left="15dp" />
+			<padding android:right="15dp" />
+			<corners android:radius="7dp" />
 		</shape>
 	</item>
 
