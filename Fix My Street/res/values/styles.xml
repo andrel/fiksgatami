@@ -11,9 +11,11 @@
 		<item name="android:padding">13dip</item>
 	</style>
 	<style name="imageview">
-		<item name="android:fadingEdge">horizontal</item>
-		<item name="android:layout_width">fill_parent</item>
-		<item name="android:layout_height">wrap_content</item>
+		<item name="android:layout_margin">@dimen/imageview_margin</item>
+		<item name="android:background">@drawable/imageview</item>
+		<item name="android:layout_width">@dimen/imageview_width</item>
+		<item name="android:layout_height">@dimen/imageview_height</item>
+		<item name="android:layout_gravity">center</item>
 	</style>
 	<style name="FgmTextView" parent="android:Widget.TextView">
 		<item name="android:layout_width">fill_parent</item>
@@ -32,5 +34,9 @@
 	<dimen name="text_size_large">22sp</dimen>
 	<dimen name="button_radius">7dp</dimen>
 	<dimen name="button_margin">10dp</dimen>
+	<dimen name="imageview_margin">10dp</dimen>
+
+	<dimen name="imageview_height">180dp</dimen>
+	<dimen name="imageview_width">200dp</dimen>
 
 </resources>

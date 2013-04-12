@@ -10,11 +10,11 @@
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content">
 
-		<ImageButton android:id="@+id/image_preview"
-		             style="@style/imageview"
-		             android:contentDescription="@string/image_preview_description"
-		             android:src="@drawable/street_background_smaller"
+		<ImageView android:id="@+id/image_preview"
+		           style="@style/imageview"
+		           android:contentDescription="@string/image_preview_description"
 		/>
+
 		<Button android:id="@+id/camera_button"
 		        style="@style/button"
 		        android:text="@string/take_photo"

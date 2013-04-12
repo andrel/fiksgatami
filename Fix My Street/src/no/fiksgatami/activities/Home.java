@@ -33,6 +33,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import no.fiksgatami.FiksGataMi;
@@ -101,7 +102,7 @@ public class Home extends Base {
     private View progressLoading;
     private ReportUpload taskReportUpload;
     private String provider;
-    private ImageButton imagePreview;
+    private ImageView imagePreview;
     private String photouri;
     private DisplayMetrics displayMetrics;
 
@@ -124,7 +125,7 @@ public class Home extends Base {
         textDebug = (TextView) findViewById(R.id.debug_text);
         textDebug.setText("Debug..");
         progressLoading = findViewById(R.id.loading);
-        imagePreview = (ImageButton) findViewById(R.id.image_preview);
+        imagePreview = (ImageView) findViewById(R.id.image_preview);
 
 
 //        if (savedInstanceState != null) {
@@ -336,14 +337,12 @@ public class Home extends Base {
         });
     }
 
-
-
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK && requestCode == REQUEST_UPLOAD_PICTURE) {
             updatePictureButton();
             photouri = Environment.getExternalStorageDirectory() + FiksGataMi.PHOTO_FILENAME;
-            CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.drawable.street_background_smaller));
+            //CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.drawable.street_background_smaller));
         } else if (resultCode == RESULT_OK && requestCode == PICK_UPLOAD_PICTURE && data != null && data.getData() != null) {
 //            Uri uri = data.getData();
 //            if (uri != null) {
