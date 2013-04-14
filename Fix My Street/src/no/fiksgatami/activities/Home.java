@@ -48,7 +48,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
 import java.util.List;
 
 public class Home extends Base {
@@ -108,6 +107,7 @@ public class Home extends Base {
     private DisplayMetrics displayMetrics;
     private static final String JPEG_FILE_SUFFIX = ".jpg";
     private static final String PICTURES_DIR = "/Pictures/";
+    private File photo;
 
     // Called when the activity is first created
     @Override
@@ -129,6 +129,7 @@ public class Home extends Base {
         textDebug.setText("Debug..");
         progressLoading = findViewById(R.id.loading);
         mImageView = (ImageView) findViewById(R.id.image_preview);
+        photo = createImageFile();
 
         if (savedInstanceState != null) {
             mCurrentPhotoPath = savedInstanceState.getString("photouri");
@@ -325,20 +326,16 @@ public class Home extends Base {
     }
 
     private void captureImage() {
-        try {
-            File photo = createImageFile();
-            Intent imageCaptureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            imageCaptureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photo));
-            startActivityForResult(imageCaptureIntent, RECIEVE_CAMERA_PICTURE);
-        } catch (IOException e) {
-            Log.d(LOG_TAG, "Could not create image file.", e);
-        }
+        Intent imageCaptureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        imageCaptureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photo));
+        startActivityForResult(imageCaptureIntent, RECIEVE_CAMERA_PICTURE);
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK && requestCode == RECIEVE_CAMERA_PICTURE) {
-            setPic();
+        if ((resultCode == RESULT_OK) && requestCode == RECIEVE_CAMERA_PICTURE) {
+            // mCurrentPhotoPath is already written to by the Camera activity.
+            // Don't have to do anything here - updating the thumbnail preview are handled in #onWindowFocusChanged.
         } else if (resultCode == RESULT_OK && requestCode == PICK_UPLOAD_PICTURE) {
             setPic();
         } else {
@@ -374,17 +371,12 @@ public class Home extends Base {
         mImageView.setImageBitmap(bitmap);
     }
 
-    private File createImageFile() throws IOException {
-        // Create an image file name
-        File imageDir = getPictureStorageDirectory();
-        Log.d(LOG_TAG, FiksGataMi.PHOTO_FILENAME + ", " + JPEG_FILE_SUFFIX + ", " + imageDir);
-        File image = File.createTempFile(
-            FiksGataMi.PHOTO_FILENAME,
-            JPEG_FILE_SUFFIX,
-            imageDir
-        );
-        mCurrentPhotoPath = image.getAbsolutePath();
-        return image;
+    private File createImageFile() {
+            File imageDir = getPictureStorageDirectory();
+            Log.d(LOG_TAG, FiksGataMi.PHOTO_FILENAME + ", " + JPEG_FILE_SUFFIX + ", " + imageDir);
+            File image = new File(imageDir, FiksGataMi.PHOTO_FILENAME + JPEG_FILE_SUFFIX);
+            mCurrentPhotoPath = image.getAbsolutePath();
+            return image;
     }
 
     @Override
@@ -399,7 +391,6 @@ public class Home extends Base {
             // Log.d(LOG_TAG, "mRowId = " + mRowId);
             outState.putBoolean("photo", havePicture);
         }
-        Log.d(LOG_TAG, "" + mCurrentPhotoPath);
     }
 
     @Override
