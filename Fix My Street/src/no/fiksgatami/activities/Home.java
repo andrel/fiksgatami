@@ -164,7 +164,6 @@ public class Home extends Base {
         ); */
 
         return new File(Environment.getExternalStorageDirectory() + PICTURES_DIR);
-        //return new File(Environment.getExternalStorageDirectory() + PICTURES_DIR + FiksGataMi.IMAGES_DIR);
     }
 
     @Override
@@ -190,18 +189,15 @@ public class Home extends Base {
         int vc = 0;
         try {
             vc = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
-            versionName = getPackageManager().getPackageInfo(getPackageName(),
-                    0).versionName;
+            versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
         } catch (NameNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
         // TODO - add this code next time!
-        boolean hasSeenUpdateVersion = settings.getBoolean(
-                "hasSeenUpdateVersion" + vc, false);
-        boolean hasSeenOldVersion = settings.getBoolean("hasSeenUpdateVersion"
-                + (vc - 1), false);
+        boolean hasSeenUpdateVersion = settings.getBoolean("hasSeenUpdateVersion" + vc, false);
+        boolean hasSeenOldVersion = settings.getBoolean("hasSeenUpdateVersion" + (vc - 1), false);
         if (!hasSeenUpdateVersion && hasSeenOldVersion) {
             showDialog(UPON_UPDATE);
             SharedPreferences.Editor editor = settings.edit();
@@ -228,15 +224,12 @@ public class Home extends Base {
     protected void onResume() {
         // Restore persistent state.
         super.onResume();
-        Log.d(LOG_TAG, "onResume");
         locationManager.requestLocationUpdates(provider, 400, 1, locationListener);
     }
 
     @Override
     protected void onPause() {
         // Save persistent state.
-        // Log.d(LOG_TAG, "onPause, havePicture = " + havePicture);
-        Log.d(LOG_TAG, "onPause");
         super.onPause();
         locationManager.removeUpdates(locationListener);
     }
@@ -244,7 +237,6 @@ public class Home extends Base {
     @Override
     public void onRestart() {
         super.onRestart();
-        Log.d(LOG_TAG, "onRestart");
         checkBundle();
     }
 
@@ -334,8 +326,7 @@ public class Home extends Base {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if ((resultCode == RESULT_OK) && requestCode == RECIEVE_CAMERA_PICTURE) {
-            // mCurrentPhotoPath is already written to by the Camera activity.
-            // Don't have to do anything here - updating the thumbnail preview are handled in #onWindowFocusChanged.
+            setPic();
         } else if (resultCode == RESULT_OK && requestCode == PICK_UPLOAD_PICTURE) {
             setPic();
         } else {
@@ -546,7 +537,6 @@ public class Home extends Base {
             previousGPSFixTime = latestGPSFixTime;
         }
         long timeDiffSecs = (latestGPSFixTime - previousGPSFixTime) / 1000;
-
         previousGPSFixTime = latestGPSFixTime;
 
         locAccuracy = (int) location.getAccuracy();
