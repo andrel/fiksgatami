@@ -15,7 +15,7 @@
 		           android:contentDescription="@string/image_preview_description"
 		/>
 
-		<Button android:id="@+id/camera_button"
+		<no.fiksgatami.components.CameraButton android:id="@+id/camera_button"
 		        style="@style/button"
 		        android:text="@string/take_photo"
 		/>

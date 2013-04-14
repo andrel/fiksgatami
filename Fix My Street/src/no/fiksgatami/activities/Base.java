@@ -12,7 +12,6 @@ public class Base extends Activity {
     protected static final int MENU_HELP = 1;
     protected static final int MENU_ABOUT = 2;
 
-    protected static final int REQUEST_UPLOAD_PICTURE = 1;
-    protected static final int PICK_UPLOAD_PICTURE = 2;
-    protected static final int RECIEVE_CAMERA_PICTURE = 3;
+    protected static final int PICK_UPLOAD_PICTURE = 1;
+    protected static final int RECIEVE_CAMERA_PICTURE = 2;
 }

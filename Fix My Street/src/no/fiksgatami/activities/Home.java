@@ -10,7 +10,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.location.Criteria;
 import android.location.Location;
@@ -32,12 +31,12 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import no.fiksgatami.FiksGataMi;
 import no.fiksgatami.R;
+import no.fiksgatami.components.CameraButton;
 import no.fiksgatami.utils.CommonUtil;
 import no.fiksgatami.utils.HttpUtil;
 import org.apache.http.HttpEntity;
@@ -58,7 +57,7 @@ public class Home extends Base {
     public static final String PREFS_NAME = "FMS_Settings";
     private Button btnReport;
     private EditText textSubmissionTitle;
-    private Button btnPicture;
+    private CameraButton btnPicture;
     private Button btnPictureFromGallery;
     private Button btnPosition;
     // Info that's been passed from other activities
@@ -115,7 +114,7 @@ public class Home extends Base {
         settings = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
         textSubmissionTitle = (EditText) findViewById(R.id.submission_title);
-        btnPicture = (Button) findViewById(R.id.camera_button);
+        btnPicture = (CameraButton) findViewById(R.id.camera_button);
         btnPictureFromGallery = (Button) findViewById(R.id.gallery_button);
         btnPosition = (Button) findViewById(R.id.position_button);
         btnReport = (Button) findViewById(R.id.report_button);
@@ -291,7 +290,7 @@ public class Home extends Base {
                 }
                 Intent imageCaptureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                 imageCaptureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photo));
-                startActivityForResult(imageCaptureIntent, REQUEST_UPLOAD_PICTURE);
+                startActivityForResult(imageCaptureIntent, RECIEVE_CAMERA_PICTURE);
             }
         });
         btnPictureFromGallery.setOnClickListener(new OnClickListener() {
@@ -339,7 +338,7 @@ public class Home extends Base {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK && requestCode == REQUEST_UPLOAD_PICTURE) {
+        if (resultCode == RESULT_OK && requestCode == RECIEVE_CAMERA_PICTURE) {
             updatePictureButton();
             photouri = Environment.getExternalStorageDirectory() + FiksGataMi.PHOTO_FILENAME;
             //CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.drawable.street_background_smaller));
@@ -753,4 +752,5 @@ public class Home extends Base {
             //Log.d(LOG_TAG, "StatusChanged[" + provider + "] " + status + "(" + extras.get("satellites") +  ")");
         }
     }
+
 }
