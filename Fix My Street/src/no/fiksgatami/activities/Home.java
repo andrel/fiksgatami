@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -47,6 +48,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 public class Home extends Base {
@@ -101,9 +103,11 @@ public class Home extends Base {
     private View progressLoading;
     private ReportUpload taskReportUpload;
     private String provider;
-    private ImageView imagePreview;
-    private String photouri;
+    private ImageView mImageView;
+    private String mCurrentPhotoPath;
     private DisplayMetrics displayMetrics;
+    private static final String JPEG_FILE_SUFFIX = ".jpg";
+    private static final String PICTURES_DIR = "/Pictures/";
 
     // Called when the activity is first created
     @Override
@@ -124,31 +128,47 @@ public class Home extends Base {
         textDebug = (TextView) findViewById(R.id.debug_text);
         textDebug.setText("Debug..");
         progressLoading = findViewById(R.id.loading);
-        imagePreview = (ImageView) findViewById(R.id.image_preview);
+        mImageView = (ImageView) findViewById(R.id.image_preview);
 
-
-//        if (savedInstanceState != null) {
-//            havePicture = savedInstanceState.getBoolean("photo");
-//            photouri = savedInstanceState.getString("photouri");
-//            Log.d(LOG_TAG, "savedInstanceState not null, havePicture = " + photouri);
-//        } else {
-//            photouri = null;
-//            Log.d(LOG_TAG, "savedInstanceState null");
-//        }
-//        CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.id.background_image));
+        if (savedInstanceState != null) {
+            mCurrentPhotoPath = savedInstanceState.getString("photouri");
+        }
 
         extras = getIntent().getExtras();
         checkBundle();
         setListeners();
         handleUpdatedVersion();
-        verifyCountry();
+
+        // So what if we're in another country / missing data connectivity?
+        //verifyCountry();
+    }
+
+    @Override
+    public void onWindowFocusChanged(final boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (mCurrentPhotoPath != null
+                && mImageView.getDrawable() == null) {
+            // Resture thumbnail image.
+            setPic();
+        }
+    }
+
+    private File getPictureStorageDirectory() {
+        // Androir 2.2 / API level 8
+        /*storageDir = new File(
+            Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES
+            ),
+            getAlbumName()
+        ); */
+
+        return new File(Environment.getExternalStorageDirectory() + PICTURES_DIR);
+        //return new File(Environment.getExternalStorageDirectory() + PICTURES_DIR + FiksGataMi.IMAGES_DIR);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-
-        setDisplayMetrics();
 
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         Criteria criteria = new Criteria();
@@ -159,14 +179,6 @@ public class Home extends Base {
 
         locationListener = new FGMLocationListener();
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 400, 0, locationListener);
-
-        //CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.drawable.street_background_smaller));
-    }
-
-    private void setDisplayMetrics() {
-        //gets screen dimensions
-        displayMetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
     }
 
     /**
@@ -277,20 +289,10 @@ public class Home extends Base {
     // ****************************************************
 
     private void setListeners() {
+        // TODO andlin: http://developer.android.com/training/camera/photobasics.html sjekk isIntentAvailable.
         btnPicture.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                File photo = new File(
-                        Environment.getExternalStorageDirectory(),
-                        FiksGataMi.PHOTO_FILENAME);
-                if (photo.exists()) {
-                    boolean success = photo.delete();
-                    if (!success) {
-                        Log.w(LOG_TAG, "Problem deleting image: " + photo.getPath());
-                    }
-                }
-                Intent imageCaptureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                imageCaptureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photo));
-                startActivityForResult(imageCaptureIntent, RECIEVE_CAMERA_PICTURE);
+                captureImage();
             }
         });
         btnPictureFromGallery.setOnClickListener(new OnClickListener() {
@@ -315,59 +317,74 @@ public class Home extends Base {
                 uploadToFMS();
             }
         });
-        imagePreview.setOnClickListener(new OnClickListener() {
+        mImageView.setOnClickListener(new OnClickListener() {
             public void onClick(final View view) {
-                // TODO andlin: http://developer.android.com/training/camera/photobasics.html sjekk isIntentAvailable.
-                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                startActivityForResult(takePictureIntent, RECIEVE_CAMERA_PICTURE);
-/*
-                AlertDialog.Builder builder = new AlertDialog.Builder(Home.this);
-                AlertDialog alertDialog = builder.create();
-                alertDialog.setTitle("Velg bilde");
-                alertDialog.setMessage("Velg hvor du vil finne bilde.");
-                alertDialog.setButton("OK", new DialogInterface.OnClickListener() {
-                    public void onClick(final DialogInterface dialogInterface, final int i) {
-                        Log.d(LOG_TAG, "Alert dialog clicked!");
-                    }
-                });
-                alertDialog.show();
-*/
+                captureImage();
             }
         });
+    }
+
+    private void captureImage() {
+        try {
+            File photo = createImageFile();
+            Intent imageCaptureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            imageCaptureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photo));
+            startActivityForResult(imageCaptureIntent, RECIEVE_CAMERA_PICTURE);
+        } catch (IOException e) {
+            Log.d(LOG_TAG, "Could not create image file.", e);
+        }
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK && requestCode == RECIEVE_CAMERA_PICTURE) {
-            updatePictureButton();
-            photouri = Environment.getExternalStorageDirectory() + FiksGataMi.PHOTO_FILENAME;
-            //CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.drawable.street_background_smaller));
-        } else if (resultCode == RESULT_OK && requestCode == PICK_UPLOAD_PICTURE && data != null && data.getData() != null) {
-//            Uri uri = data.getData();
-//            if (uri != null) {
-//                Cursor cursor = getContentResolver().query(uri, new String[]{MediaStore.Images.ImageColumns.DATA}, null, null, null);
-//                cursor.moveToFirst();
-//                photouri = cursor.getString(0);
-//                CommonUtil.updateImage(imagePreview, photouri, displayMetrics.widthPixels, getResources().getDrawable(R.drawable.street_background_smaller));
-//                cursor.close();
-//            }
+            setPic();
+        } else if (resultCode == RESULT_OK && requestCode == PICK_UPLOAD_PICTURE) {
+            setPic();
         } else {
             Log.w(LOG_TAG, String.format("onActivityResult with unknown requestCode/resultCode: %s/%s", requestCode, resultCode));
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    private void handleSmallCameraPhoto(Intent intent) {
-        Bundle extras = intent.getExtras();
-        Bitmap mImageBitmap = (Bitmap) extras.get("data");
-        imagePreview.setImageBitmap(mImageBitmap);
+    private void setPic() {
+        // Get the dimensions of the View
+        int targetW = mImageView.getWidth();
+        int targetH = mImageView.getHeight();
+
+        // Get the dimensions of the bitmap
+        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+        bmOptions.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(mCurrentPhotoPath, bmOptions);
+        int photoW = bmOptions.outWidth;
+        int photoH = bmOptions.outHeight;
+
+        Log.d(LOG_TAG, photoW + ", " + targetW);
+        Log.d(LOG_TAG, photoH + ", " + targetH);
+
+        // Determine how much to scale down the image
+        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
+
+        // Decode the image file into a Bitmap sized to fill the View
+        bmOptions.inJustDecodeBounds = false;
+        bmOptions.inSampleSize = scaleFactor;
+        bmOptions.inPurgeable = true;
+
+        Bitmap bitmap = BitmapFactory.decodeFile(mCurrentPhotoPath, bmOptions);
+        mImageView.setImageBitmap(bitmap);
     }
 
-    /**
-     * Update button with "done"-symbol and new text label.
-     */
-    private void updatePictureButton() {
-        btnPicture.setText(R.string.picture_taken);
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        File imageDir = getPictureStorageDirectory();
+        Log.d(LOG_TAG, FiksGataMi.PHOTO_FILENAME + ", " + JPEG_FILE_SUFFIX + ", " + imageDir);
+        File image = File.createTempFile(
+            FiksGataMi.PHOTO_FILENAME,
+            JPEG_FILE_SUFFIX,
+            imageDir
+        );
+        mCurrentPhotoPath = image.getAbsolutePath();
+        return image;
     }
 
     @Override
@@ -376,13 +393,13 @@ public class Home extends Base {
         // Save state related to the activity (transient state)
         Log.d(LOG_TAG, "onSaveInstanceState");
 
-        outState.putString("photouri", photouri);
+        outState.putString("photouri", mCurrentPhotoPath);
 
         if (havePicture != null) {
             // Log.d(LOG_TAG, "mRowId = " + mRowId);
             outState.putBoolean("photo", havePicture);
         }
-        Log.d(LOG_TAG, "" + photouri);
+        Log.d(LOG_TAG, "" + mCurrentPhotoPath);
     }
 
     @Override
@@ -392,8 +409,6 @@ public class Home extends Base {
         Log.d(LOG_TAG, "onRestoreInstanceState");
 
         havePicture = savedInstanceState.getBoolean("photo");
-        photouri = savedInstanceState.getString("photouri");
-        Log.d(LOG_TAG, "" + photouri);
     }
 
     // **********************************************************************
