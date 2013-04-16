@@ -37,6 +37,7 @@
 	<dimen name="imageview_margin">10dp</dimen>
 
 	<dimen name="imageview_height">180dp</dimen>
-	<dimen name="imageview_width">200dp</dimen>
+	<!-- Width is height * 1.333 -->
+	<dimen name="imageview_width">240dp</dimen>
 
 </resources>
