@@ -27,7 +27,7 @@
 
 		<EditText android:id="@+id/submission_title"
 		          style="@style/textbox"
-		          android:text="@string/submission_title"
+		          android:hint="@string/submission_title"
 		/>
 
 		<Button android:id="@+id/position_button"
