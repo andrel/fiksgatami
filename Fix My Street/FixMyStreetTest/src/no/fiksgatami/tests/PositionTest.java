@@ -54,4 +54,7 @@ public class PositionTest extends ActivityInstrumentationTestCase2<Position> {
         ViewAsserts.assertOnScreen(mCancelButton.getRootView(), mCancelButton);
     }
 
+    public void testButtonBarAlligned() throws Exception {
+        ViewAsserts.assertBottomAligned(mOkButton, mCancelButton);
+    }
 }
