@@ -45,6 +45,7 @@
     <string name="common_ok">OK</string>
     <string name="common_yes">Ja</string>
     <string name="common_no">Nei</string>
+	<string name="common_cancel">Avbryt</string>
 
     <string name="gps_signal_found">GPS signal funnet!</string>
     <string name="gps_signal_found_please_report_now">GPS signal funnet! Rapporter til FiksGataMi</string>

@@ -10,6 +10,7 @@ import org.osmdroid.views.MapView;
 
 /**
  *
+ * TODO andlin: Document required params in extras (lat/long).
  */
 public class Position extends Base {
 
@@ -24,11 +25,12 @@ public class Position extends Base {
 
         extras = getIntent().getExtras();
 
-        MapView map = (MapView) findViewById(R.id.osm_map);
+        MapView map = (MapView) findViewById(R.id.position_osm_map);
         map.setTileSource(TileSourceFactory.DEFAULT_TILE_SOURCE);
         map.setBuiltInZoomControls(true);
         map.setMultiTouchControls(true);
         MapController mapController = map.getController();
+        // TODO andlin: Set zoom factor based on network/gps accuracy?
         mapController.setZoom(23);
         GeoPoint gPt;
         if (havePosition()) {

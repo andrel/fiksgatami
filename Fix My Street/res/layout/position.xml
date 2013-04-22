@@ -1,13 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="fill_parent"
-              android:layout_height="fill_parent">
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent">
 
-	<org.osmdroid.views.MapView
-			android:layout_width="fill_parent"
-			android:layout_height="fill_parent"
-			android:id="@+id/osm_map"
-			/>
+	<LinearLayout android:id="@+id/position_button_bar"
+	              android:layout_width="fill_parent"
+	              android:layout_height="wrap_content"
+	              android:orientation="horizontal"
+	              android:layout_alignParentBottom="true">
 
-</LinearLayout>
+		<Button android:id="@+id/position_cancel_button"
+		        android:layout_width="0dp"
+		        android:layout_height="wrap_content"
+		        android:layout_weight="1"
+		        style="@style/button"
+		        android:text="@string/common_cancel" />
+
+		<Button android:id="@+id/position_ok_button"
+		        android:layout_width="0dp"
+		        android:layout_height="wrap_content"
+		        android:layout_weight="1"
+		        style="@style/button"
+		        android:text="@string/common_ok" />
+
+	</LinearLayout>
+
+	<LinearLayout
+			      android:layout_width="fill_parent"
+			      android:layout_height="fill_parent"
+			      android:layout_above="@id/position_button_bar">
+
+		<org.osmdroid.views.MapView
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:id="@+id/position_osm_map" />
+
+	</LinearLayout>
+
+
+</RelativeLayout>
