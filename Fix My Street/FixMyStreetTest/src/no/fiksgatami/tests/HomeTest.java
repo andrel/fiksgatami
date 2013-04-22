@@ -3,6 +3,7 @@ package no.fiksgatami.tests;
 import android.app.Instrumentation;
 import android.test.ActivityInstrumentationTestCase2;
 import android.test.TouchUtils;
+import android.test.ViewAsserts;
 import android.view.KeyEvent;
 import android.widget.Button;
 import android.widget.EditText;
@@ -29,7 +30,6 @@ public class HomeTest extends ActivityInstrumentationTestCase2<Home> {
     private Instrumentation mInstrumentation;
     private EditText textSubmissionTitle;
     private Button mGalleryButton;
-    private static final String LOG_TAG = HomeTest.class.getSimpleName();
 
     public HomeTest() {
         super("no.fiksgatami", Home.class);
@@ -46,11 +46,9 @@ public class HomeTest extends ActivityInstrumentationTestCase2<Home> {
     }
 
     public void testPreConditions() throws Exception {
-        assertTrue(mCameraButton.isShown());
-        assertTrue(mCameraButton.isEnabled());
-        assertTrue(mGalleryButton.isShown());
-        assertTrue(mGalleryButton.isEnabled());
-        assertTrue(textSubmissionTitle.isEnabled());
+        ViewAsserts.assertOnScreen(mCameraButton.getRootView(), mCameraButton);
+        ViewAsserts.assertOnScreen(mGalleryButton.getRootView(), mGalleryButton);
+        ViewAsserts.assertOnScreen(textSubmissionTitle.getRootView(), textSubmissionTitle);
     }
 
     public void testTextFieldContents() throws Exception {
